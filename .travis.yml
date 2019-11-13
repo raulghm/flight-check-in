@@ -1,0 +1,32 @@
+language: node_js
+cache:
+  directories:
+    - ~/.npm
+node_js:
+  - "10.16.3"
+notifications:
+  email: false
+stages:
+  - test
+  - name: deploy
+    if: branch = master
+jobs:
+  include:
+    - stage: test
+      name: eslint
+      script: npm run lint
+    - stage: test
+      name: commitlint
+      before_script:
+        - npm i -g @commitlint/travis-cli
+      script: commitlint-travis
+    - stage: test
+      script: npm t
+    - stage: test
+      script: npm run lighthouse
+    - stage: deploy
+      before_script:
+        - npm i -g netlify-cli
+      script:
+        - npm run build
+        - npx semantic-release
