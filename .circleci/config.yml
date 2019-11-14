@@ -43,6 +43,14 @@ jobs:
       - run:
           name: Run tests
           command: npm run test
+  lighthouse:
+    <<: *requires-node
+    steps:
+      - attach_workspace:
+          at: ~/
+      - run:
+          name: Run lighthouse
+          command: npm run lighthouse
   build:
     <<: *requires-node
     steps:
@@ -64,10 +72,11 @@ workflows:
           <<: *requires-installed-packages
       - test:
           <<: *requires-installed-packages
+      - lighthouse:
+          <<: *requires-installed-packages
       - build:
           <<: *requires-installed-packages
-      - deploy:
-          requires:
-            - lint
-            - test
-            - build
+          filters:
+            branches:
+              ignore:
+                - master
