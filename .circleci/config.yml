@@ -1,0 +1,73 @@
+version: 2
+
+requires-installed-packages: &requires-installed-packages
+  requires:
+    - install-packages
+
+requires-node: &requires-node
+  docker:
+    - image: circleci/node:10.17.0
+
+jobs:
+  install-packages:
+    <<: *requires-node
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - yarn-packages-{{ .Branch }}-{{ checksum "yarn.lock" }}
+      - run:
+          name: Install packages
+          command: yarn install
+      - save_cache:
+          key: yarn-packages-{{ .Branch }}-{{ checksum "yarn.lock" }}
+          paths:
+            - node_modules
+      - persist_to_workspace:
+          root: ~/
+          paths:
+            - project
+  lint:
+    <<: *requires-node
+    steps:
+      - attach_workspace:
+          at: ~/
+      - run:
+          name: Run linter
+          command: npm run lint
+  test:
+    <<: *requires-node
+    steps:
+      - attach_workspace:
+          at: ~/
+      - run:
+          name: Run tests
+          command: npm run test
+  build:
+    <<: *requires-node
+    steps:
+      - attach_workspace:
+          at: ~/
+      - run:
+          name: Build app
+          command: npm run build
+      - persist_to_workspace:
+          root: ~/
+          paths:
+            - project/dist
+workflows:
+  version: 2
+  main:
+    jobs:
+      - install-packages
+      - lint:
+          <<: *requires-installed-packages
+      - test:
+          <<: *requires-installed-packages
+      - build:
+          <<: *requires-installed-packages
+      - deploy:
+          requires:
+            - lint
+            - test
+            - build
